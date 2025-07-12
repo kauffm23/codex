@@ -1,4 +1,23 @@
+' ==============================================================================
+' Abstract:
 ' status = u_append_message(table, keyField, keyValue, messageValue, statusValue, messageField, statusField)
+'
+'
+' Inputs:
+'   Context:
+'
+'   Variables (inc global):
+'
+' Outputs:
+'   Context:
+'
+'   Variables:
+'
+'
+' Change History:
+' Date                          By                                      Reason
+' 08-Jul-2025           Kauffman, Brent M.              Initial_version
+' ==============================================================================
 
 newLine = Chr(10)
 
