@@ -1,0 +1,85 @@
+' ====================================================================================
+' Abstract:
+' status = uArrayFromCSVFile(fileName, columnDelimiter, rowDelimiter, trimWhiteSpaces, "outputArrayName")
+'        
+'
+' Inputs:
+'   Context:
+'        
+'   Variables (inc global):
+'        
+' Outputs:
+'   Context:
+'        
+'   Variables:
+'        
+'
+' Change History:
+' Date				By					Reason
+' 08-Jul-2025		Kauffman, Brent M.		Initial_version
+' ====================================================================================
+
+DECLARE treatAsText encodingHint contents 
+
+routineName = "uArrayFromCSVFile"
+context = "ExtendedLBFunctions"
+
+' Read contents of the file to a string
+treatAsText = TRUE 
+encodingHint = "UTF8"
+contents = FileContents(fileName, treatAsText, encodingHint)
+
+IF (IsEmpty(contents)) THEN 
+	message = "File is empty: {fileName}; lastError: {lastError};"
+	message = ContextTranslate(message) 
+	u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, message, "ERROR")
+	RETURN FALSE 
+ENDIF 
+
+DECLARE doubleQuote num isInString row column startIndex length cellValue status outputValue 
+DECLARE currentCharacter charsToStrip
+
+doubleQuote = Chr(34)
+num = Len(contents) 
+isInString = FALSE
+row = 1
+column = 1
+startIndex = 1
+length = 0
+cellValue = ""
+status = ClearArray("outputArrayName") 
+outputValue = FALSE
+FOR i = 1 TO num STEP 1 
+	currentCharacter = Mid(contents, i, 1) 
+
+	' If the current character is a double quote, we are at a string boundary
+	IF (currentCharacter = doubleQuote) THEN 
+		isInString = Not(isInString)
+	ENDIF 
+
+	' If we are not in a string and we have reached a column or row delimiter or the end of the file, output the value
+	IF (((currentCharacter = rowDelimiter) OR (currentCharacter = columnDelimiter) OR (i = num)) AND Not(isInString)) THEN
+		outputValue = TRUE
+	ENDIF 
+
+	' If an outputValue is set, add it to the array
+	IF (outputValue) THEN 
+		length = i - startIndex 
+		cellValue = Mid(contents, startIndex, length) 
+		charsToStrip = doubleQuote
+		cellValue = StripChars(cellValue, charsToStrip)
+		outputArrayName[row,column] = cellValue
+
+		outputValue = FALSE
+		column = column + 1
+		startIndex = i + 1
+	ENDIF
+
+	' If it is the end of a line, increment row and set column to the beginning
+	IF ((currentCharacter = rowDelimiter) AND Not(isInString)) THEN 
+		row = row + 1
+		column = 1
+	ENDIF 
+NEXT 
+
+RETURN TRUE

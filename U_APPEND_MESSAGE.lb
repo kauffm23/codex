@@ -1,0 +1,31 @@
+' status = u_append_message(table, keyField, keyValue, messageValue, statusValue, messageField, statusField)
+
+newLine = Chr(10)
+
+query = "SELECT {messageField}, {statusField} FROM {table} WHERE {keyField} = '{keyValue}'"
+query = ContextTranslateSQL(query)
+status = SQL(query, "messageArray") 
+currentMessage = messageArray[1,1]
+currentStatus = messageArray[1,2]
+
+IF (IsEmpty(currentMessage)) THEN 
+	currentMessage = messageValue
+ELSE 
+	messageValue = currentMessage & newLine & messageValue
+ENDIF 
+
+IF (IsEmpty(statusValue)) THEN 
+	statusValue = currentStatus
+ENDIF 
+
+keyFields[1] = keyField
+keyValues[1] = keyValue
+fields[1] = messageField
+fields[2] = statusField
+values[1] = messageValue
+values[2] = statusValue
+incrementVersionFlag = FALSE
+commitFlag = TRUE
+auditFlag = FALSE
+status = UpdateTableFlds(table,keyFields,keyValues,fields,values,auditReason,incrementVersionFlag, commitFlag, auditFlag) 
+RETURN status

@@ -1,5 +1,28 @@
+' ====================================================================================
+' Abstract:
+'        
+'
+' Inputs:
+'   Context:
+'        
+'   Variables (inc global):
+'        
+' Outputs:
+'   Context:
+'        
+'   Variables:
+'        
+'
+' Change History:
+' Date				By					Reason
+' 08-Jul-2025		Kauffman, Brent M.		Initial_version
+' ====================================================================================
+
+routineName = "SCH_METONE_3400P_FILE"
+context = "Subroutine"
+
 '================================================================================
-'Begin Section: Subroutine Setup
+'						Begin Section: Subroutine Setup
 '================================================================================
 
 DECLARE year constantName metOneTsvBase args[] unprocessedDir status archiveDir errorDir filter tsvFileArray[] fileCount
@@ -10,12 +33,12 @@ constantName = "METONE_TSV_BASE"
 metOneTsvBase = GetConstant(constantName)
 
 IF (Not(DirExists(metOneTsvBase))) THEN 
-category = "MetOne"
-errMsg = "The MetOneTsvBase directory does not exist or is not accessible: " & metOneTsvBase
-errMsg = errMsg & "*"
-status = Subroutine("T_FN_ERROR_LOG", "T_FN_ERROR_TRAP")
-
-RETURN
+	category = "MetOne"
+	errMsg = "The MetOneTsvBase directory does not exist or is not accessible: " & metOneTsvBase
+	errMsg = errMsg & "*"
+	status = Subroutine("T_FN_ERROR_LOG", "T_FN_ERROR_TRAP")
+	
+	RETURN
 ENDIF 
 
 unprocessedDir = metOneTsvBase 
@@ -25,68 +48,68 @@ args[1] = metOneTsvBase
 args[2] = "Archive"
 archiveDir = DnInvokeStaticMethod("System.IO.Path", "Combine", args) 
 IF (Not(DirExists(archiveDir))) THEN 
-status = DirNew(archiveDir) 
-IF (Not(status)) THEN 
-category = "MetOne"
-errMsg = "Failed to create directory: " & archiveDir
-errMsg = errMsg & "*"
-status = Subroutine("T_FN_ERROR_LOG", "T_FN_ERROR_TRAP")
+	status = DirNew(archiveDir) 
+	IF (Not(status)) THEN 
+		category = "MetOne"
+		errMsg = "Failed to create directory: " & archiveDir
+		errMsg = errMsg & "*"
+		status = Subroutine("T_FN_ERROR_LOG", "T_FN_ERROR_TRAP")
 
-RETURN
-ENDIF 
+		RETURN
+	ENDIF 
 ENDIF
 
 args[2] = "Archive"
 args[3] = year
 archiveDir = DnInvokeStaticMethod("System.IO.Path", "Combine", args) 
 IF (Not(DirExists(archiveDir))) THEN 
-status = DirNew(archiveDir) 
-IF (Not(status)) THEN 
-category = "MetOne"
-errMsg = "Failed to create directory: " & archiveDir
-errMsg = errMsg & "*"
-status = Subroutine("T_FN_ERROR_LOG", "T_FN_ERROR_TRAP")
+	status = DirNew(archiveDir) 
+	IF (Not(status)) THEN 
+		category = "MetOne"
+		errMsg = "Failed to create directory: " & archiveDir
+		errMsg = errMsg & "*"
+		status = Subroutine("T_FN_ERROR_LOG", "T_FN_ERROR_TRAP")
 
-RETURN
-ENDIF 
+		RETURN
+	ENDIF 
 ENDIF
 
 args[2] = "Error"
 errorDir = DnInvokeStaticMethod("System.IO.Path", "Combine", args) 
 IF (Not(DirExists(errorDir))) THEN 
-status = DirNew(errorDir) 
-IF (Not(status)) THEN 
-category = "MetOne"
-errMsg = "Failed to create directory: " & errorDir
-errMsg = errMsg & "*"
-status = Subroutine("T_FN_ERROR_LOG", "T_FN_ERROR_TRAP")
+	status = DirNew(errorDir) 
+	IF (Not(status)) THEN 
+		category = "MetOne"
+		errMsg = "Failed to create directory: " & errorDir
+		errMsg = errMsg & "*"
+		status = Subroutine("T_FN_ERROR_LOG", "T_FN_ERROR_TRAP")
 
-RETURN
-ENDIF 
+		RETURN
+	ENDIF 
 ENDIF
 
 args[2] = "Error"
 args[3] = year
 errorDir = DnInvokeStaticMethod("System.IO.Path", "Combine", args) 
 IF (Not(DirExists(errorDir))) THEN 
-status = DirNew(errorDir) 
-IF (Not(status)) THEN 
-category = "MetOne"
-errMsg = "Failed to create directory: " & errorDir
-errMsg = errMsg & "*"
-status = Subroutine("T_FN_ERROR_LOG", "T_FN_ERROR_TRAP")
+	status = DirNew(errorDir) 
+	IF (Not(status)) THEN 
+		category = "MetOne"
+		errMsg = "Failed to create directory: " & errorDir
+		errMsg = errMsg & "*"
+		status = Subroutine("T_FN_ERROR_LOG", "T_FN_ERROR_TRAP")
 
-RETURN
-ENDIF 
+		RETURN
+	ENDIF 
 ENDIF
 
 '================================================================================
-'End Section: Subroutine Setup
+'						End Section: Subroutine Setup
 '================================================================================
 
 
 '================================================================================
-'Start Section: Loading Queue
+'						Start Section: Loading Queue
 '================================================================================
 
 filter = "*.tsv"
@@ -100,117 +123,117 @@ DECLARE table keyField keyValue auditReason auditFlag commitFlag destinationBase
 
 ' Must add all of the files to the queue before processing so that we do not process out of order
 FOR currentFile = 1 TO fileCount STEP 1 
-fileName = tsvFileArray[currentFile,1]
-fileDateTime = tsvFileArray[currentFile,3]
+	fileName = tsvFileArray[currentFile,1]
+	fileDateTime = tsvFileArray[currentFile,3]
 
-ClearArray("args") 
-args[1] = unprocessedDir 
-args[2] = fileName 
-sourcePath = DnInvokeStaticMethod("System.IO.Path", "Combine", args)
+	ClearArray("args") 
+	args[1] = unprocessedDir 
+	args[2] = fileName 
+	sourcePath = DnInvokeStaticMethod("System.IO.Path", "Combine", args)
 
-rowDelimiter = Chr(10)
-columnDelimiter = Chr(9)
-trimWhiteSpaces = TRUE
-ClearArray("csvArray") 
-status = uArrayFromCSVFile(sourcePath, columnDelimiter, rowDelimiter, trimWhiteSpaces, "csvArray")
+	rowDelimiter = Chr(10)
+	columnDelimiter = Chr(9)
+	trimWhiteSpaces = TRUE
+	ClearArray("csvArray") 
+	status = uArrayFromCSVFile(sourcePath, columnDelimiter, rowDelimiter, trimWhiteSpaces, "csvArray")
 
-' check for errors
+	' check for errors
 
-ClearArray("rowsArray") 
-ClearArray("valuesArray") 
-ClearArray("headerArray") 
-rowsArray[1] = 1
-valuesArray[1] = "Instrument Name"
-status = ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
-instrumentNameColumn = headerArray[1]
-instrumentNameValue = csvArray[2, instrumentNameColumn]
+	ClearArray("rowsArray") 
+	ClearArray("valuesArray") 
+	ClearArray("headerArray") 
+	rowsArray[1] = 1
+	valuesArray[1] = "Instrument Name"
+	status = ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+	instrumentNameColumn = headerArray[1]
+	instrumentNameValue = csvArray[2, instrumentNameColumn]
 
-valuesArray[1] = "User" 
-ClearArray("headerArray") 
-status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
-userColumn = headerArray[1]
-userDisplayNameValue = csvArray[2, userColumn]
+	valuesArray[1] = "User" 
+	ClearArray("headerArray") 
+	status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+	userColumn = headerArray[1]
+	userDisplayNameValue = csvArray[2, userColumn]
 
-query = "SELECT USER_NAME FROM LIMS_USERS WHERE FULL_NAME = '{userDisplayNameValue}'"
-query = ContextTranslateSQL(query) 
-ClearArray("userArray")
-status = status & SQL(query, "userArray") 
-userCount = UBound(userArray, 1) 
-'************************************ check this
-userValue = userArray[1,1]
+	query = "SELECT USER_NAME FROM LIMS_USERS WHERE FULL_NAME = '{userDisplayNameValue}'"
+	query = ContextTranslateSQL(query) 
+	ClearArray("userArray")
+	status = status & SQL(query, "userArray") 
+	userCount = UBound(userArray, 1) 
+	'************************************ check this
+	userValue = userArray[1,1]
 
-valuesArray[1] = "External Id" 
-ClearArray("headerArray") 
-status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
-monLocationColumn = headerArray[1]
-monLocationValue = csvArray[2, monLocationColumn]
+	valuesArray[1] = "External Id" 
+	ClearArray("headerArray") 
+	status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+	monLocationColumn = headerArray[1]
+	monLocationValue = csvArray[2, monLocationColumn]
 
-valuesArray[1] = "SOP"
-ClearArray("headerArray") 
-status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
-monProgramColumn = headerArray[1]
-monProgramValue = csvArray[2, monProgramColumn]
+	valuesArray[1] = "SOP"
+	ClearArray("headerArray") 
+	status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+	monProgramColumn = headerArray[1]
+	monProgramValue = csvArray[2, monProgramColumn]
 
-valuesArray[1] = "Completion Time"
-ClearArray("headerArray") 
-status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
-completionTimeColumn = headerArray[1]
-completionTimeValue = CVDateTime(csvArray[2, completionTimeColumn])
+	valuesArray[1] = "Completion Time"
+	ClearArray("headerArray") 
+	status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+	completionTimeColumn = headerArray[1]
+	completionTimeValue = CVDateTime(csvArray[2, completionTimeColumn])
+	
+	' **************** Must verify the completion time
 
-' **************** Must verify the completion time
+	ClearArray("keyFields") 
+	ClearArray("keyValues") 
+	ClearArray("fields") 
+	ClearArray("values")  	
+	table = "X_METONE_QUEUE"
+	keyField = "ENTRY_CODE"
+	keyValue = GetTableIncrement(table, keyField)
+	keyFields[1] = keyField
+	keyValues[1] = keyValue
+	fields[1] = "ORIGINAL_FILE"
+	fields[2] = "EXT_LINK"	
+	fields[3] = "CREATED_ON"
+	fields[4] = "STATUS"
+	fields[5] = "INSTRUMENT"
+	fields[6] = "CREATED_BY"
+	fields[7] = "PROGRAM"
+	fields[8] = "LOCATION"	
+	values[1] = sourcePath
+	values[2] = sourcePath
+	values[3] = fileDateTime 
+	values[4] = "NEW" 
+	values[5] = instrumentNameValue
+	values[6] = userValue
+	values[7] = monProgramValue 
+	values[8] = monLocationValue 
+	auditReason = "Initial import"
+	auditFlag = TRUE 
+	commitFlag = TRUE 
+	status = status & InsertTable(table, keyFields, keyValues, fields, values, auditReason, auditFlag, commitFlag)
 
-ClearArray("keyFields") 
-ClearArray("keyValues") 
-ClearArray("fields") 
-ClearArray("values")  
-table = "X_METONE_QUEUE"
-keyField = "ENTRY_CODE"
-keyValue = GetTableIncrement(table, keyField)
-keyFields[1] = keyField
-keyValues[1] = keyValue
-fields[1] = "ORIGINAL_FILE"
-fields[2] = "EXT_LINK"
-fields[3] = "CREATED_ON"
-fields[4] = "STATUS"
-fields[5] = "INSTRUMENT"
-fields[6] = "CREATED_BY"
-fields[7] = "PROGRAM"
-fields[8] = "LOCATION"
-values[1] = sourcePath
-values[2] = sourcePath
-values[3] = fileDateTime 
-values[4] = "NEW" 
-values[5] = instrumentNameValue
-values[6] = userValue
-values[7] = monProgramValue 
-values[8] = monLocationValue 
-auditReason = "Initial import"
-auditFlag = TRUE 
-commitFlag = TRUE 
-status = status & InsertTable(table, keyFields, keyValues, fields, values, auditReason, auditFlag, commitFlag)
+	' Note: reconsider
+	IF (status) THEN   
+		destinationBase = archiveDir 
+	ELSE 
+		destinationBase = errorDir 
+	ENDIF 
 
-' Note: reconsider
-IF (status) THEN   
-destinationBase = archiveDir 
-ELSE 
-destinationBase = errorDir 
-ENDIF 
-
-ClearArray("args") 
-args[1] = destinationBase 
-args[2] = fileName
-destinationDir = DnInvokeStaticMethod("System.IO.Path", "Combine", args) 
-status = FileRename(sourcePath, destinationDir)
-
-'check error
+	ClearArray("args") 
+	args[1] = destinationBase 
+	args[2] = fileName
+	destinationDir = DnInvokeStaticMethod("System.IO.Path", "Combine", args) 
+	status = FileRename(sourcePath, destinationDir)
+	
+	'check error
 NEXT 
 
 '================================================================================
-'End Section: Loading Queue
+'						End Section: Loading Queue
 '================================================================================
 
 '================================================================================
-'Start Section: Processing Loaded Files
+'					Start Section: Processing Loaded Files
 '================================================================================
 
 ' ***** Start processing files *****
@@ -229,145 +252,145 @@ status = SQL(query, "queueEntryArray")
 queueCount = Ubound(queueEntryArray, 1) 
 
 FOR queueIndex = 1 TO queueCount STEP 1 
-entryCode = queueEntryArray[queueIndex,1]
-monProgramValue = queueEntryArray[queueIndex,2]
-monLocationValue = queueEntryArray[queueIndex,3]
+	entryCode = queueEntryArray[queueIndex,1]
+	monProgramValue = queueEntryArray[queueIndex,2]
+	monLocationValue = queueEntryArray[queueIndex,3]
 
-' Check for errors
+	' Check for errors
 
-DECLARE batchMatchArray[] batchCount newSamplesArray[] newBatch sampleMatchArray[] match
-DECLARE batchName sampleNumber testScope newSampleNumber position shiftFlag
+	DECLARE batchMatchArray[] batchCount newSamplesArray[] newBatch sampleMatchArray[] match
+	DECLARE batchName sampleNumber testScope newSampleNumber position shiftFlag
 
-' First, check how many batches we have
-query = "SELECT COUNT(DISTINCT B.NAME) FROM BATCH B INNER JOIN SAMPLE S  ON B.NAME = S.BATCH "
-query = query & "WHERE B.CLOSED = 'F' AND B.X_MON_AUTO_IMPORT = 'T' AND B.X_MON_PROG = '{monProgramValue}' "
-query = query & "AND S.T_PH_MON_LOCATION = '{monLocationValue}' AND B.TEMPLATE = 'METONE_NVPM'"
-query = ContextTranslateSQL(query) 
-ClearArray("batchMatchArray")
-status = SQL(query, "batchMatchArray") 
+	' First, check how many batches we have
+	query = "SELECT COUNT(DISTINCT B.NAME) FROM BATCH B INNER JOIN SAMPLE S  ON B.NAME = S.BATCH "
+	query = query & "WHERE B.CLOSED = 'F' AND B.X_MON_AUTO_IMPORT = 'T' AND B.X_MON_PROG = '{monProgramValue}' "
+	query = query & "AND S.T_PH_MON_LOCATION = '{monLocationValue}' AND B.TEMPLATE = 'METONE_NVPM'"
+	query = ContextTranslateSQL(query) 
+	ClearArray("batchMatchArray")
+	status = SQL(query, "batchMatchArray") 
 
-' check for errors
+	' check for errors
 
-batchCount = batchMatchArray[1,1]
+	batchCount = batchMatchArray[1,1]
 
 
-IF (batchCount = 0) THEN 
-' Create a new batch
-ClearArray("newSamplesArray")
-newBatch = u_log_mon_prog_now(monProgramValue, "newSamplesArray")
-' check errors
+	IF (batchCount = 0) THEN 
+		' Create a new batch
+		ClearArray("newSamplesArray")
+		newBatch = u_log_mon_prog_now(monProgramValue, "newSamplesArray")
+		' check errors
 
-' Move on to entry
+		' Move on to entry
 
-ELSEIF (batchCount = 1) THEN 
-'check status and inSpec/inControl
-query = "SELECT TOP 1 CASE WHEN S.STATUS = 'I' THEN 'ENTER' WHEN S.IN_SPEC = 'F' OR S.IN_CONTROL = 'F' "
-query = query & "THEN 'CHILD' ELSE 'CONFLICT' END, B.NAME, S.SAMPLE_NUMBER FROM BATCH B INNER JOIN SAMPLE S "
-query = query & "ON B.NAME = S.BATCH INNER JOIN TEST T ON S.SAMPLE_NUMBER = T.SAMPLE_NUMBER "
-query = query & "WHERE B.CLOSED = 'F' AND B.X_MON_AUTO_IMPORT = 'T' AND B.X_MON_PROG = '{monProgramValue}' "
-query = query & "AND S.T_PH_MON_LOCATION = '{monLocationValue}' AND T.ANALYSIS = 'NVPM' AND "
-query = query & "B.TEMPLATE = 'METONE_NVPM' ORDER BY T.SAMPLE_NUMBER DESC, T.TEST_NUMBER DESC"
-query = ContextTranslateSQL(query) 
-ClearArray("sampleMatchArray")
-status = SQL(query, "sampleMatchArray") 
+	ELSEIF (batchCount = 1) THEN 
+		'check status and inSpec/inControl
+		query = "SELECT TOP 1 CASE WHEN S.STATUS = 'I' THEN 'ENTER' WHEN S.IN_SPEC = 'F' OR S.IN_CONTROL = 'F' "
+		query = query & "THEN 'CHILD' ELSE 'CONFLICT' END, B.NAME, S.SAMPLE_NUMBER FROM BATCH B INNER JOIN SAMPLE S "
+		query = query & "ON B.NAME = S.BATCH INNER JOIN TEST T ON S.SAMPLE_NUMBER = T.SAMPLE_NUMBER "
+		query = query & "WHERE B.CLOSED = 'F' AND B.X_MON_AUTO_IMPORT = 'T' AND B.X_MON_PROG = '{monProgramValue}' "
+		query = query & "AND S.T_PH_MON_LOCATION = '{monLocationValue}' AND T.ANALYSIS = 'NVPM' AND "
+		query = query & "B.TEMPLATE = 'METONE_NVPM' ORDER BY T.SAMPLE_NUMBER DESC, T.TEST_NUMBER DESC"
+		query = ContextTranslateSQL(query) 
+		ClearArray("sampleMatchArray")
+		status = SQL(query, "sampleMatchArray") 
 
-'check for errors
+		'check for errors
 
-match = sampleMatchArray[1,1]
+		match = sampleMatchArray[1,1]
 
-SELECTCASE match
-CASE "ENTER"
-' Move on to entry
-CASE "CHILD"
-batchName = sampleMatchArray[1,2]
-sampleNumber = sampleMatchArray[1,3]
-testScope = "A"
-auditReason = "Resample added by background process"
-newSampleNumber = ReSample(sampleNumber, testScope, auditReason) 
-position = 1
-shiftFlag = TRUE 
-status = AddSampleToBatch(batchName, newSampleNumber, position, shiftFlag) 
-status = Save() 
-CASE ELSE 
-' Conflict
-ClearArray("keyFields") 
-ClearArray("keyValues") 
-ClearArray("fields") 
-ClearArray("values") 
-table = "X_METONE_QUEUE"
-keyFields[1] = "ENTRY_CODE"
-keyValues[1] = entryCode
-fields[1] = "STATUS"
-fields[2] = "MESSAGE"
-values[1] = "CONFLICT"
-values[2] = "Sample has is of wrong status" 'check message
-auditReason = "Proccessing queue entries"
-incrementVersionFlag = "F"
-commitFlag = "T"
-auditFlag = "T"
-status = UpdateTableFlds(table, keyFields, keyValues, fields, values, auditReason, incrementVersionFlag, commitFlag, auditFlag) 
+		SELECTCASE match
+		CASE "ENTER"
+			' Move on to entry
+		CASE "CHILD"
+			batchName = sampleMatchArray[1,2]
+			sampleNumber = sampleMatchArray[1,3]
+			testScope = "A"
+			auditReason = "Resample added by background process"
+			newSampleNumber = ReSample(sampleNumber, testScope, auditReason) 
+			position = 1
+			shiftFlag = TRUE 
+			status = AddSampleToBatch(batchName, newSampleNumber, position, shiftFlag) 
+			status = Save() 
+		CASE ELSE 
+			' Conflict
+			ClearArray("keyFields") 
+			ClearArray("keyValues") 
+			ClearArray("fields") 
+			ClearArray("values") 
+			table = "X_METONE_QUEUE"
+			keyFields[1] = "ENTRY_CODE"
+			keyValues[1] = entryCode
+			fields[1] = "STATUS"
+			fields[2] = "MESSAGE"
+			values[1] = "CONFLICT"
+			values[2] = "Sample has is of wrong status" 'check message
+			auditReason = "Proccessing queue entries"
+			incrementVersionFlag = "F"
+			commitFlag = "T"
+			auditFlag = "T"
+			status = UpdateTableFlds(table, keyFields, keyValues, fields, values, auditReason, incrementVersionFlag, commitFlag, auditFlag) 
 
-' log any errors
-CONTINUE
-ENDSELECT 
-ELSEIF (batchCount > 1) THEN
-' Conflict
-ClearArray("keyFields") 
-ClearArray("keyValues") 
-ClearArray("fields") 
-ClearArray("values") 
-table = "X_METONE_QUEUE"
-keyFields[1] = "ENTRY_CODE"
-keyValues[1] = entryCode
-fields[1] = "STATUS"
-fields[2] = "MESSAGE"
-values[1] = "CONFLICT"
-values[2] = "Multiple Samples" 'check message
-auditReason = "Proccessing queue entries"
-incrementVersionFlag = "F"
-commitFlag = "T"
-auditFlag = "T"
-status = UpdateTableFlds(table, keyFields, keyValues, fields, values, auditReason, incrementVersionFlag, commitFlag, auditFlag) 
+			' log any errors
+			CONTINUE
+		ENDSELECT 
+	ELSEIF (batchCount > 1) THEN
+		' Conflict
+		ClearArray("keyFields") 
+		ClearArray("keyValues") 
+		ClearArray("fields") 
+		ClearArray("values") 
+		table = "X_METONE_QUEUE"
+		keyFields[1] = "ENTRY_CODE"
+		keyValues[1] = entryCode
+		fields[1] = "STATUS"
+		fields[2] = "MESSAGE"
+		values[1] = "CONFLICT"
+		values[2] = "Multiple Samples" 'check message
+		auditReason = "Proccessing queue entries"
+		incrementVersionFlag = "F"
+		commitFlag = "T"
+		auditFlag = "T"
+		status = UpdateTableFlds(table, keyFields, keyValues, fields, values, auditReason, incrementVersionFlag, commitFlag, auditFlag) 
 
-' log any errors
-CONTINUE
-ENDIF 
+		' log any errors
+		CONTINUE
+	ENDIF 
 
-' Start entry here
+	' Start entry here
+		
+	' ***** Match to Batch and Sample *****
+	' At this point there should be only on eligible sample
+	query = "SELECT S.SAMPLE_NUMBER,T.TEST_NUMBER FROM BATCH B INNER JOIN SAMPLE S "
+	query = query & "ON B.NAME = S.BATCH INNER JOIN TEST T ON S.SAMPLE_NUMBER = T.SAMPLE_NUMBER "
+	query = query & "WHERE B.CLOSED = 'F' AND B.X_MON_AUTO_IMPORT = 'T' AND B.X_MON_PROG = "
+	query = query & "'{monProgramValue}' AND S.T_PH_MON_LOCATION = '{monLocationValue}' AND "
+	query = query & "T.ANALYSIS = 'NVPM' AND B.TEMPLATE = 'METONE_NVPM' AND S.STATUS = 'I'"
+	query = ContextTranslateSQL(query) 
+	ClearArray("sampleMatchArray")
+	status = SQL(query, "sampleMatchArray") 
 
-' ***** Match to Batch and Sample *****
-' At this point there should be only on eligible sample
-query = "SELECT S.SAMPLE_NUMBER,T.TEST_NUMBER FROM BATCH B INNER JOIN SAMPLE S "
-query = query & "ON B.NAME = S.BATCH INNER JOIN TEST T ON S.SAMPLE_NUMBER = T.SAMPLE_NUMBER "
-query = query & "WHERE B.CLOSED = 'F' AND B.X_MON_AUTO_IMPORT = 'T' AND B.X_MON_PROG = "
-query = query & "'{monProgramValue}' AND S.T_PH_MON_LOCATION = '{monLocationValue}' AND "
-query = query & "T.ANALYSIS = 'NVPM' AND B.TEMPLATE = 'METONE_NVPM' AND S.STATUS = 'I'"
-query = ContextTranslateSQL(query) 
-ClearArray("sampleMatchArray")
-status = SQL(query, "sampleMatchArray") 
+	' check status
+	count = UBound(sampleMatchArray, 1) 
 
-' check status
-count = UBound(sampleMatchArray, 1) 
+	IF (count <> 1) THEN 
+		' Handle error
+		RETURN
+	ENDIF
 
-IF (count <> 1) THEN 
-' Handle error
-RETURN
-ENDIF
+	' Enter results
+	sampleNumber = sampleMatchArray[1,1]
+	status = u_enter_metone_results(entryCode, sampleNumber) 
 
-' Enter results
-sampleNumber = sampleMatchArray[1,1]
-status = u_enter_metone_results(entryCode, sampleNumber) 
-
-IF (status) THEN 
-status = u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, "Successfully processed entry", "ARCHIVED") 
-status = Save() 
-ELSE
-status = u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, "Error processing entry. LastError: " & lastError , "ERROR") 
-ENDIF 
+	IF (status) THEN 
+		status = u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, "Successfully processed entry", "ARCHIVED") 
+		status = Save() 
+	ELSE
+		status = u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, "Error processing entry. LastError: " & lastError , "ERROR") 
+	ENDIF 
 NEXT 
 
 '================================================================================
-'End Section: Processing Loaded Files
+'					End Section: Processing Loaded Files
 '================================================================================
 
 RETURN

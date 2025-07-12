@@ -1,0 +1,62 @@
+routineName = "U_LOG_MON_PROG_NOW"
+context = "EXTENDED_LB_FUNCTION"
+
+DECLARE fieldsArray[] valuesArray[] headers locationsArray[] query status category
+DECLARE locationsTransposedArray[] maxIndex templateName sampleNumber errorMsg recordIndex
+
+ClearArray("outputArrayName")
+ClearArray("fieldsArray") 
+headers = "T_PH_MON_PROG,T_PH_MON_LOCATION_ID,PRODUCT,SPEC_TYPE,TARGET_DATE,PRODUCT_GRADE,T_PH_MON_ROOM,DESCRIPTION,"
+headers = headers & "T_PH_MON_PROG_VER,T_PH_MON_LOCATION,STAGE,SAMPLING_POINT,GROUP_NAME,X_SYSTEM,X_BUILDING,X_FLOOR,"
+headers = headers & "X_MON_SAMPLE_TYPE,AVAILABLE_DATE,REQUIRED_DATE,T_PH_MON_REASON"
+ArrayFromCSVString(headers, ",", , , "fieldsArray") 
+
+ClearArray("locationsArray") 
+query = "SELECT L.T_PH_MON_PROG,L.LOCATION_ID,L.PRODUCT,L.SPEC_TYPE,{DATE},L.GRADE,P.ROOM,L.DESCRIPTION,"
+query = query & "L.VERSION,L.LOCATION,L.STAGE,L.SAMPLING_POINT,P.GROUP_NAME,L.X_SYSTEM,L.X_BUILDING,"
+query = query & "L.X_FLOOR,L.SAMPLE_TYPE,{DATE},{DATE},L.REASON FROM T_PH_MON_PROG P INNER JOIN T_PH_MON_LOCATION L "
+query = query & "ON P.NAME = L.T_PH_MON_PROG AND P.VERSION = L.VERSION  INNER JOIN VERSIONS V ON P.NAME = "
+query = query & "V.NAME AND P.VERSION = V.VERSION AND V.TABLE_NAME = 'T_PH_MON_PROG' WHERE P.ACTIVE = 'T' "
+query = query & "AND P.REMOVED = 'F' AND P.NAME = '{program}' ORDER BY P.NAME,L.ORDER_NUMBER"
+query = ContextTranslateSQL(query) 
+status = SQL(query, "locationsArray") 
+
+reasonStr = SELECT T_PH_MON_LOCATION.REASON
+'    fieldsArr[ 20 ] = "T_PH_MON_REASON"  setting reason on SLT
+IF (Not(status)) THEN 
+	u_error_log_sql("Querying Monitoring Program", routineName, context, "EM_MON", lastError)
+ENDIF 
+
+ClearArray("locationsTransposedArray") 
+ArrayTranspose(locationsArray, "locationsTransposedArray") 
+maxIndex = UboundArray(locationsTransposedArray, 2) 
+recordIndex = 0
+
+FOR i = 1 TO maxIndex STEP 1 
+	ClearArray("valuesArray") 
+	ArrayConvertToSingleDim(locationsTransposedArray, "valuesArray", i) 
+
+	templateName = "MON_PROG_NOW_C"
+	sampleNumber = LogSample(templateName, fieldsArray, valuesArray) 
+	
+	IF (sampleNumber = ERROR) THEN
+		errMsg = NLS("NLS_MON_ERR_LOG_SMP", "Error logging sample") & " " & lastError
+		u_error_log(errMsg, routineName, context, "EM_MON", errorFlag)
+	ELSE
+		recordIndex = recordIndex + 1
+		outputArrayName[recordIndex] = sampleNumber
+	ENDIF
+NEXT 
+
+batchTemplateStr = "METONE_NVPM"
+linkKey = ""
+objectType = "SAMPLE"
+ClearArray("fieldsArray") 
+ClearArray("valuesArray") 
+fieldsArray[1] = "X_MON_PROG"
+valuesArray[1] = program
+fieldsArray[2] = "X_MON_AUTO_IMPORT"
+valuesArray[2] = "T"
+batchName = CreateBatch(batchTemplateStr, fieldsArray, valuesArray, linkKey, outputArrayName, objectType)
+
+RETURN batchName 

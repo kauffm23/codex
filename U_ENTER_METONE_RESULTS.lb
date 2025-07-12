@@ -1,0 +1,380 @@
+' ====================================================================================
+' Abstract:
+' status = u_enter_metone_results(entryCode, sampleNumber)
+'        
+'
+' Inputs:
+'   Context:
+'        
+'   Variables (inc global):
+'        
+' Outputs:
+'   Context:
+'        
+'   Variables:
+'        
+'
+' Change History:
+' Date				By					Reason
+' 08-Jul-2025		Kauffman, Brent M.		Initial_version
+' ====================================================================================
+
+routineName = "U_ENTER_METONE_RESULTS"
+context = "ExtendedLBFunctions"
+
+'================================================================================
+'						Begin Section: Queue Lookup
+'================================================================================
+
+DECLARE query queueArray[] status fileName count
+
+query = "SELECT ENTRY_CODE, EXT_LINK FROM X_METONE_QUEUE WHERE ENTRY_CODE = {entryCode}"
+query = ContextTranslateSQL(query) 
+ClearArray("queueArray") 
+status = SQL(query, "queueArray") 
+count = UBound(queueArray, 1) 
+
+IF (Not(status) OR (count <> 1)) THEN 
+	errMsg = "Error querying X_METONE_QUEUE with query: {query}; lastError: {lastError}"
+	errMsg = ContextTranslate(errMsg)
+	Subroutine("T_FN_ERROR_LOG_SQL", "T_FN_ERROR_TRAP")
+	RETURN FALSE
+ENDIF 
+
+entryCode = queueArray[1,1]
+fileName = queueArray[1,2]
+
+'================================================================================
+'						Begin Section: Queue Lookup
+'================================================================================
+
+DECLARE rowDelimiter columnDelimiter trimWhiteSpaces csvArray[] message
+
+rowDelimiter = Chr(10) ' newline
+columnDelimiter = Chr(9) ' tab
+trimWhiteSpaces = TRUE
+ClearArray("csvArray") 
+status = uArrayFromCSVFile(fileName, columnDelimiter, rowDelimiter, trimWhiteSpaces, "csvArray")
+
+IF (Not(status)) THEN 
+	message = "Error reading tsv file: {fileName}; lastError: {lastError};"
+	message = ContextTranslate(message) 
+	u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, message, "ERROR")
+	RETURN FALSE 
+ENDIF 
+
+'================================================================================
+'						Begin Section: Locate Columns
+'================================================================================
+
+DECLARE rowsArray[] valuesArray[] headerArray[] instrumentIdColumn instrumentNameColumn userColumn
+DECLARE sampleIdColumn channel05Column channel1Column channel2Column channel3Column channel5Column
+DECLARE channel10Column monLocationColumn monProgramColumn completionTimeColumn
+
+ClearArray("rowsArray") 
+ClearArray("valuesArray") 
+
+ClearArray("headerArray") 
+rowsArray[1] = 1
+valuesArray[1] = "Instrument Id"
+status = ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+instrumentIdColumn = headerArray[1]
+
+valuesArray[1] = "Instrument Name" 
+ClearArray("headerArray") 
+status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+instrumentNameColumn = headerArray[1]
+
+valuesArray[1] = "User" 
+ClearArray("headerArray") 
+status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+userColumn = headerArray[1]
+
+valuesArray[1] = "Sample Id" 
+ClearArray("headerArray") 
+status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+sampleIdColumn = headerArray[1]
+
+valuesArray[1] = "0.5µm Channel" 
+ClearArray("headerArray") 
+status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+channel05Column = headerArray[1]
+
+valuesArray[1] = "1.0µm Channel" 
+ClearArray("headerArray") 
+status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+channel1Column = headerArray[1]
+
+valuesArray[1] = "2.0µm Channel" 
+ClearArray("headerArray") 
+status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+channel2Column = headerArray[1]
+
+valuesArray[1] = "3.0µm Channel" 
+ClearArray("headerArray") 
+status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+channel3Column = headerArray[1]
+
+valuesArray[1] = "5.0µm Channel" 
+ClearArray("headerArray") 
+status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray)
+channel5Column = headerArray[1]
+
+valuesArray[1] = "10.0µm Channel" 
+ClearArray("headerArray") 
+status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+channel10Column = headerArray[1]
+
+valuesArray[1] = "External Id" 
+ClearArray("headerArray") 
+status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+monLocationColumn = headerArray[1]
+
+valuesArray[1] = "SOP"
+ClearArray("headerArray") 
+status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+monProgramColumn = headerArray[1]
+
+valuesArray[1] = "Completion Time"
+ClearArray("headerArray") 
+status = status AND ArraySearchColumns(csvArray, "headerArray", rowsArray, valuesArray) 
+completionTimeColumn = headerArray[1]
+
+' If there are missing columns abandon file
+IF (Not(status)) THEN 
+	u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, "Missing column(s)", "ERROR")
+	RETURN FALSE 
+ENDIF 
+
+'================================================================================
+'						Begin Section: Process Result Rows
+'================================================================================
+
+DECLARE rowCount currentRow instrumentIdValue instrumentNameValue userValue sampleIdValue channel05Value 
+DECLARE channel1Value channel2Value channel3Value channel5Value channel10Value monLocationValue monProgramValue
+DECLARE completionTimeValue
+
+rowCount = UBound(csvArray, 1)
+
+' This function only supports one result row.
+IF (rowCount > 2) THEN 
+	message = "The tsv file contains {rowCount} rows. A maximum of 2 are supported: {fileName};"
+	message = ContextTranslate(message) 
+	u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, message, "ERROR")
+	RETURN FALSE 
+ENDIF 
+
+FOR currentRow = 2 TO rowCount STEP 1 
+	' ***** Extract data from row *****
+	instrumentIdValue = csvArray[currentRow, instrumentIdColumn]
+	instrumentNameValue = csvArray[currentRow, instrumentNameColumn]
+	userDisplayNameValue = csvArray[currentRow, userColumn]
+	sampleIdValue = csvArray[currentRow, sampleIdColumn]
+	' The channel values are formatted with embedded spaces (9 999.0)
+	channel05Value = Replace(csvArray[currentRow, channel05Column], " ", "")
+	channel1Value = Replace(csvArray[currentRow, channel1Column], " ", "")
+	channel2Value = Replace(csvArray[currentRow, channel2Column], " ", "")
+	channel3Value = Replace(csvArray[currentRow, channel3Column], " ", "")
+	channel5Value = Replace(csvArray[currentRow, channel5Column ], " ", "")
+	channel10Value = Replace(csvArray[currentRow, channel10Column], " ", "")
+	monLocationValue = csvArray[currentRow, monLocationColumn]
+	monProgramValue = csvArray[currentRow, monProgramColumn]
+	
+	query = "SELECT USER_NAME FROM LIMS_USERS WHERE FULL_NAME = '{userDisplayNameValue}'"
+	query = ContextTranslateSQL(query) 
+	ClearArray("userArray")
+	status = SQL(query, "userArray") 
+	userCount = UBound(userArray, 1)	
+
+	IF (Not(status) OR (userCount <> 1)) THEN 
+		errMsg = "Error looking up user with displayName: {query}; lastError: {lastError}"
+		errMsg = ContextTranslate(errMsg)
+		Subroutine("T_FN_ERROR_LOG_SQL", "T_FN_ERROR_TRAP")
+		RETURN FALSE
+	ENDIF 
+	
+	completionTimeValue = CVDateTime(csvArray[currentRow, completionTimeColumn])
+
+	IF (completionTimeValue = "ERROR") THEN  
+		message = "The completion date failed to parse: " & csvArray[currentRow, completionTimeColumn]
+		u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, message, "ERROR")
+		RETURN FALSE 
+	ENDIF  
+	
+	userValue = userArray[1,1]
+	
+	DECLARE sampleMatchArray[]
+
+	query = "SELECT SAMPLE_NUMBER, TEST_NUMBER FROM TEST WHERE SAMPLE_NUMBER = {sampleNumber} AND ANALYSIS = 'NVPM' AND STATUS NOT IN ('X', 'R', 'A')"
+	query = ContextTranslateSQL(query) 
+	ClearArray("sampleMatchArray")
+	status = SQL(query, "sampleMatchArray") 
+
+	IF (Not(status)) THEN 
+		errMsg = "Error querying sample/test for match: {query}; lastError: {lastError}"
+		errMsg = ContextTranslate(errMsg)
+		Subroutine("T_FN_ERROR_LOG_SQL", "T_FN_ERROR_TRAP")
+		RETURN FALSE
+	ENDIF 
+
+	count = UBound(sampleMatchArray, 1) 
+
+	DECLARE analysisName numReps 
+	' If no test is found, add one to the sample
+	IF (count = 0) THEN 
+		analysisName = "NVPM"
+		numReps = 1
+		status = AssignTest(sampleNumber, analysisName, numReps)
+		
+		IF (Not(status)) THEN 
+			message = "Error assigning NVPM analysis to sample: {lastError}"
+			message = ContextTranslate(message)
+			u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, message, "ERROR")
+			RETURN FALSE 
+		ENDIF 
+
+		query = "SELECT SAMPLE_NUMBER, TEST_NUMBER FROM TEST WHERE SAMPLE_NUMBER = {sampleNumber} AND ANALYSIS = 'NVPM' AND STATUS NOT IN ('X', 'R', 'A')"
+		query = ContextTranslateSQL(query) 
+		ClearArray("sampleMatchArray")
+		status = SQL(query, "sampleMatchArray")  
+
+		IF (Not(status)) THEN 
+			errMsg = "Error querying sample/test for match: {query}; lastError: {lastError}"
+			errMsg = ContextTranslate(errMsg)
+			Subroutine("T_FN_ERROR_LOG_SQL", "T_FN_ERROR_TRAP")
+			RETURN FALSE
+		ENDIF
+		
+	ELSEIF (count > 1) THEN
+		message = "Too many tests found ({count}). query: {query}"
+		message = ContextTranslate(message)
+		u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, message, "ERROR")
+		RETURN FALSE 
+	ENDIF
+
+	'================================================================================
+	'						Begin Section: Set Results
+	'================================================================================
+	
+	DECLARE testNumber value commitFlag resultName instrumentCheckArray[] sqlStatus instrumentCount
+	
+	sampleNumber = sampleMatchArray[1,1]
+	testNumber = sampleMatchArray[1,2]
+
+	commitFlag = FALSE
+	resultName = "0.5µm"
+	returnZeroFlag = FALSE  
+	value = ExtractNumber(channel05Value, returnZeroFlag) 
+	status = TRUE
+	IF (NotEmpty(value)) THEN 
+		status = status & SetOrCreateResult(sampleNumber, testNumber, resultName, value, , , , commitFlag, , , , )
+	ENDIF 
+	resultName = "1.0µm"
+	value = ExtractNumber(channel1Value, returnZeroFlag)
+	IF (NotEmpty(value)) THEN 
+		status = status & SetOrCreateResult(sampleNumber, testNumber, resultName, value, , , , commitFlag, , , , )
+	ENDIF 
+	resultName = "2.0µm"
+	value = ExtractNumber(channel2Value, returnZeroFlag)
+	IF (NotEmpty(value)) THEN 
+		status = status & SetOrCreateResult(sampleNumber, testNumber, resultName, value, , , , commitFlag, , , , )
+	ENDIF 
+	resultName = "3.0µm"
+	value = ExtractNumber(channel3Value, returnZeroFlag)
+	IF (NotEmpty(value)) THEN 
+		status = status & SetOrCreateResult(sampleNumber, testNumber, resultName, value, , , , commitFlag, , , , )
+	ENDIF 
+	resultName = "5.0µm"
+	value = ExtractNumber(channel5Value, returnZeroFlag)
+	IF (NotEmpty(value)) THEN 
+		status = status & SetOrCreateResult(sampleNumber, testNumber, resultName, value, , , , commitFlag, , , , )
+	ENDIF 
+	resultName = "10.0µm"
+	value = ExtractNumber(channel10Value, returnZeroFlag)
+	IF (NotEmpty(value)) THEN 
+		status = status & SetOrCreateResult(sampleNumber, testNumber, resultName, value, , , , commitFlag, , , , )
+	ENDIF 
+	resultName = "Instrument"
+	value = instrumentNameValue
+	IF (NotEmpty(value)) THEN 
+		' Verify that the instrument exists
+		query = "SELECT 1 FROM INSTRUMENTS WHERE NAME = '{value}'"
+		query = ContextTranslateSQL(query) 
+		ClearArray("instrumentCheckArray") 
+		sqlStatus = SQL(query, "instrumentCheckArray") 
+
+		IF (Not(sqlStatus)) THEN 
+			errMsg = "Error querying instrument: {query}; lastError: {lastError}"
+			errMsg = ContextTranslate(errMsg)
+			Subroutine("T_FN_ERROR_LOG_SQL", "T_FN_ERROR_TRAP")
+			RETURN FALSE
+		ENDIF 
+		
+		instrumentCount = UBound(instrumentCheckArray, 1) 
+		
+		IF (instrumentCount = 0) THEN
+			message = "Failed to locate instrument. query: {query}"
+			message = ContextTranslate(message)
+			u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, message, "ERROR")
+			RETURN FALSE 
+		ENDIF
+
+		status = status & SetOrCreateResult(sampleNumber, testNumber, resultName, value, , , , commitFlag, , , , )
+	ENDIF 
+	
+	ClearArray("fieldsArray") 
+	ClearArray("valuesArray") 
+	resultName = "Raw Data Link"
+	value = fileName
+	fieldsArray[1] = "OPTIONAL"
+	fieldsArray[2] = "DISPLAYED"
+	valuesArray[1] = "F"
+	valuesArray[2] = "T"
+	status = status & SetOrCreateResult(sampleNumber, testNumber, resultName, value, , , , commitFlag, , , fieldsArray, valuesArray)
+
+	' If there were any errors setting the results, exit
+	IF (Not(status)) THEN 
+		message = "Error setting result values; lastError: {lastError}"
+		message = ContextTranslate(message)
+		u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, message, "ERROR")
+		RETURN FALSE
+	ENDIF
+	
+	ClearArray("fieldsArray") 
+	ClearArray("valuesArray") 
+	fieldsArray[1] = "SAMPLED_DATE"
+	fieldsArray[2] = "SAMPLED_BY"
+	fieldsArray[3] = "SAMPLED"
+	valuesArray[1] = completionTimeValue 
+	valuesArray[2] = userValue 
+	valuesArray[3] = "T" 
+	status = UpdateSampleFlds(sampleNumber, fieldsArray, valuesArray) 
+
+	ClearArray("keyFields") 
+	ClearArray("keyValues") 
+	ClearArray("fields") 
+	ClearArray("values") 
+	table = "X_METONE_QUEUE"
+	keyFields[1] = "ENTRY_CODE"
+	keyValues[1] = entryCode
+	auditReason = "Proccessing queue entries"
+	incrementVersionFlag = "F"
+	commitFlag = "T"
+	auditFlag = "T"
+	fields[1] = "STATUS"
+	fields[2] = "MESSAGE"
+
+	IF (status) THEN 
+		message = "Results successfully entered to sample: {sampleNumber}, test: {testNumber}."
+		message = ContextTranslate(message)
+		u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, message, "SUCCESS")
+		status = Save() 
+	ELSE
+		message = "Error attempting to enter results: {sampleNumber}, test: {testNumber}, lastError: {lastError}."
+		message = ContextTranslate(message)
+		u_append_message("X_METONE_QUEUE", "ENTRY_CODE", entryCode, message, "ERROR")
+		RETURN FALSE
+	ENDIF 
+NEXT 
+
+RETURN TRUE
