@@ -1,3 +1,24 @@
+' ==============================================================================
+' Abstract:
+' status = u_log_mon_prog_now(program)
+'
+'
+' Inputs:
+'   Context:
+'
+'   Variables (inc global):
+'
+' Outputs:
+'   Context:
+'
+'   Variables:
+'
+'
+' Change History:
+' Date                          By                                      Reason
+' 08-Jul-2025           Kauffman, Brent M.              Initial_version
+' ==============================================================================
+
 routineName = "U_LOG_MON_PROG_NOW"
 context = "EXTENDED_LB_FUNCTION"
 
